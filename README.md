@@ -85,9 +85,15 @@ doas docker run --rm -it \
 4. 复制成功后创建版本标记。
 5. 随后才执行 Magisk 的 `--setup-sbin` 和 `--post-fs-data`。
 
+在 Android 报告启动完成后，会自动安装magisk apk。
+
+脚本还会创建 `redroid_su_path` Magisk 模块，把 `/system/bin/su` 作为
+`/sbin/su` 的兼容入口加入。作为非shell用户找不到su问题的临时解决方案
+
 相关实现：
 
 - [`assets/bootanim.rc`](assets/bootanim.rc)
+- [`assets/redroid-install-manager.sh`](assets/redroid-install-manager.sh)
 - [`assets/redroid-setup.sh`](assets/redroid-setup.sh)
 - [`src/magisk.rs`](src/magisk.rs)
 

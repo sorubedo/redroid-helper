@@ -10,12 +10,14 @@ use tar::{Builder, Header};
 use zip::ZipArchive;
 
 pub const VERSION: &str = "v30.7";
+pub const VERSION_CODE: u32 = 30_700;
 pub const APK_URL: &str =
     "https://github.com/ayasa520/Magisk/releases/download/v30.7/app-debug.apk";
 pub const APK_SHA256: &str = "61467cfbbcad3754a29f53fe0e9bdef11d7c5961710d93089c8aa480cf4e126a";
 
 const BOOTANIM_RC: &[u8] = include_bytes!("../assets/bootanim.rc");
 const REDROID_SETUP_SH: &str = include_str!("../assets/redroid-setup.sh");
+const REDROID_INSTALL_MANAGER_SH: &str = include_str!("../assets/redroid-install-manager.sh");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImageArch {
@@ -158,6 +160,17 @@ pub fn build_layer(apk: &[u8], arch: ImageArch) -> Result<Vec<u8>> {
         2000,
         0,
     )?;
+    let redroid_install_manager = REDROID_INSTALL_MANAGER_SH
+        .replace("@MAGISK_VERSION@", VERSION)
+        .replace("@MAGISK_VERSION_CODE@", &VERSION_CODE.to_string());
+    append_file(
+        &mut layer,
+        "system/etc/init/magisk/redroid-install-manager.sh",
+        redroid_install_manager.as_bytes(),
+        0o755,
+        2000,
+        0,
+    )?;
     append_file(
         &mut layer,
         "system/etc/init/bootanim.rc",
@@ -270,6 +283,27 @@ mod tests {
         let seed_position = bootanim.find("redroid-setup.sh").unwrap();
         let post_fs_data_position = bootanim.find("--post-fs-data").unwrap();
         assert!(seed_position < post_fs_data_position);
+        let manager_install_position = bootanim.find("redroid-install-manager.sh").unwrap();
+        let boot_complete_position = bootanim.find("--boot-complete").unwrap();
+        assert!(manager_install_position < boot_complete_position);
+        assert!(!bootanim.contains("/data/data/com.topjohnwu.magisk"));
+        assert!(REDROID_INSTALL_MANAGER_SH.contains("pm install -r -g"));
+        assert!(REDROID_INSTALL_MANAGER_SH.contains("versionCode="));
+        assert!(REDROID_INSTALL_MANAGER_SH.contains("@MAGISK_VERSION@"));
+        assert!(REDROID_INSTALL_MANAGER_SH.contains("@MAGISK_VERSION_CODE@"));
+        let manager_script = REDROID_INSTALL_MANAGER_SH
+            .replace("@MAGISK_VERSION@", VERSION)
+            .replace("@MAGISK_VERSION_CODE@", &VERSION_CODE.to_string());
+        assert!(manager_script.contains(".redroid-helper-manager-v30.7"));
+        assert!(manager_script.contains("manager_version_code=30700"));
+        assert!(!manager_script.contains("@MAGISK_VERSION@"));
+        assert!(!manager_script.contains("@MAGISK_VERSION_CODE@"));
+        let su_module_position = REDROID_SETUP_SH.find("redroid_su_path").unwrap();
+        let version_exit_position = REDROID_SETUP_SH
+            .find("if [ -e \"$version_marker\" ]")
+            .unwrap();
+        assert!(su_module_position < version_exit_position);
+        assert!(REDROID_SETUP_SH.contains("ln -s /sbin/su \"$su_path_module/system/bin/su\""));
         assert!(REDROID_SETUP_SH.contains("cp -R \"$source_dir\" \"$target_dir\""));
         assert!(REDROID_SETUP_SH.contains("@MAGISK_VERSION@"));
     }

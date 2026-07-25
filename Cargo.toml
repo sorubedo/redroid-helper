@@ -1,0 +1,23 @@
+[package]
+name = "redroid-helper"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Build Magisk-enabled redroid images through the Docker Engine API"
+
+[dependencies]
+anyhow = "1.0.104"
+bollard = "0.21.0"
+clap = { version = "4.6.4", features = ["derive", "env"] }
+crossterm = "0.29.0"
+futures-util = "0.3.33"
+ratatui = { version = "0.30.2", default-features = false, features = ["crossterm_0_29"] }
+reqwest = { version = "0.13.4", default-features = false, features = ["rustls"] }
+sha2 = "0.11.0"
+tar = "0.4.46"
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "sync"] }
+zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
+
+[profile.release]
+lto = "thin"
+strip = true

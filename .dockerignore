@@ -1,0 +1,9 @@
+target
+ref
+.git
+.agents
+.codex
+.idea
+.vscode
+*.swp
+
